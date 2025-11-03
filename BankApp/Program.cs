@@ -1,10 +1,10 @@
-﻿namespace BankApp
+﻿using BankApp;
+
+class Program
 {
-    internal class Program
+    static void Main()
     {
-        static void Main(string[] args)
-        {
-            Console.WriteLine("Hello, World!");
-        }
+        UserManager manager = new UserManager();
+        manager.Run();
     }
 }
