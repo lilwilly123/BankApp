@@ -12,7 +12,7 @@ namespace BankApp
         public string AdminID { get; set; } // Unique identifier for the admin
         public string Name { get; set; } // Admin's full name
 
-        public enum UserRole { Customer, Admin, SystemOwner }
+        public enum UserRole { Customer, Admin }
         public enum UserStatus { Active, Locked }
 
         // List of all the users
@@ -24,59 +24,55 @@ namespace BankApp
         public void RegisterUser()
         {
             Console.Clear();
-            Console.WriteLine("Register a new user");
+            Console.WriteLine("Register a new user:");
 
             Console.Write("Input username: ");
             string username = Console.ReadLine();
 
-
-            //Looks for the user in the list
             if (FindUser(username) != null)
             {
-                Console.WriteLine("Username already exist.");
+                Console.WriteLine("Username already exists.");
                 return;
-
             }
 
             Console.Write("Input password: ");
             string password = Console.ReadLine();
 
-            Console.Write("Choose role (Customer/Admin/SystemOwner or C/A/S): ");
+            Console.Write("Choose role (C = Customer, A = Admin");
             string input = Console.ReadLine().Trim().ToLower();
 
-            //Assigns the user a role
             UserRole role;
+            object userObject;
+
             switch (input)
             {
-                case "customer":
                 case "c":
                     role = UserRole.Customer;
+                    userObject = new Customer();
                     break;
-                case "admin":
                 case "a":
                     role = UserRole.Admin;
-                    break;
-                case "systemowner":
-                case "s":
-                    role = UserRole.SystemOwner;
+                    userObject = new Admin();
                     break;
                 default:
-                    Console.WriteLine("Invalid role. choose C, A or S.");
+                    Console.WriteLine("Invalid role.");
                     return;
             }
 
             var newUser = new Dictionary<string, object>()
-        {
-            {"Username", username},
-            {"Password", password},
-            {"Role", role},
-            {"Status", UserStatus.Active},
-            {"FailedAttempts", 0}
-        };
+            {
+                { "Username", username },
+                { "Password", password },
+                { "Role", role },
+                { "Status", UserStatus.Active },
+                { "FailedAttempts", 0 },
+                { "UserObject", userObject } // <--- Store the object here
+            };
 
             UsersList.Add(newUser);
-            Console.WriteLine($" User '{username}' Created as {role}.");
+            Console.WriteLine($"User '{username}' created as {role}.");
         }
+
 
         // -------------------------------------------------------
         // Login
