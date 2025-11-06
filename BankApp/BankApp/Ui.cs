@@ -67,9 +67,6 @@ namespace BankApp
                 case "Admin":
                     ShowAdminMenu(user);
                     break;
-                case "SystemOwner":
-                    ShowSystemOwnerMenu(user);
-                    break;
                 default:
                     Console.WriteLine("Unknown role!");
                     break;
@@ -199,42 +196,5 @@ namespace BankApp
         // ----------------------------------------------------------
         // Menu SystemOwner
         // ----------------------------------------------------------
-        static void ShowSystemOwnerMenu(Dictionary<string, object> user)
-        {
-            SystemOwner systemowner = new SystemOwner();
-            bool loggedIn = true;
-
-            while (loggedIn)
-            {
-                Console.Clear();
-                Console.WriteLine($"Welcome {user["Username"]} (System Owner)");
-                Console.WriteLine("1. Set Max Loan Limit");
-                Console.WriteLine("2. Restrict Failed Logins");
-                Console.WriteLine("3. Logout");
-                Console.Write("Choose: ");
-
-                switch (Console.ReadLine())
-                {
-                    case "1":
-                        systemowner.SetLoanPolicy(5);
-                        break;
-                    case "2":
-                        
-                        break;
-                    case "3":
-                        loggedIn = false;
-                        break;
-                    default:
-                        Console.WriteLine("Invalid choice.");
-                        break;
-                }
-
-                if (loggedIn)
-                {
-                    Console.WriteLine("\nPress any key to continue...");
-                    Console.ReadKey();
-                }
-            }
-        }
     }
 }

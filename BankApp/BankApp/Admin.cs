@@ -41,7 +41,7 @@ namespace BankApp
             Console.Write("Input password: ");
             string password = Console.ReadLine();
 
-            Console.Write("Choose role (Customer/Admin/SystemOwner or C/A/S): ");
+            Console.Write("Choose role (Customer/Admin or C/A): ");
             string input = Console.ReadLine().Trim().ToLower();
 
             //Assigns the user a role
@@ -55,10 +55,6 @@ namespace BankApp
                 case "admin":
                 case "a":
                     role = UserRole.Admin;
-                    break;
-                case "systemowner":
-                case "s":
-                    role = UserRole.SystemOwner;
                     break;
                 default:
                     Console.WriteLine("Invalid role. choose C, A or S.");

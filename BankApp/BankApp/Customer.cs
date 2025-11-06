@@ -12,7 +12,7 @@ namespace BankApp
         // TransactionList stores all transactions made in the bank,
         // CurrencyRates holds all defined currency exchange rates.
 
-        public static List<Transaction> TransactionList = new List<Transaction>(); 
+        public static List<Transaction> TransactionList = new List<Transaction>();
 
         public static List<CurrencyRate> CurrencyRates = new List<CurrencyRate>();
         public string Name { get; set; } // Customer's full name    
@@ -24,60 +24,59 @@ namespace BankApp
 
         public List<Loan> Loans { get; set; } = new List<Loan>(); // List of customer's loans
 
-        
 
 
-        
+
+
         public void CreateAccount()
         {
-            Account newAccount = new Account();
+            Console.Write("Choose currency (SEK/EUR/USD): ");
+            string curr = Console.ReadLine()?.Trim().ToUpper();
+            if (string.IsNullOrWhiteSpace(curr)) curr = "SEK";
+
+            var newAccount = new Account(currency: curr, initialBalance: 0m);
             Accounts.Add(newAccount); // Add the new account to the customer's account list
+
+            Console.WriteLine($"Account created! Number: {newAccount.AccountNumber} | Currency: {newAccount.Currency} | Balance: {newAccount.Balance}");
         }
 
         public void WithdrawFunds(string accountNumber, decimal amount)
         {
-            foreach (var account in Accounts)
+            var acc = GetAccountByNumber(accountNumber);
+            if (acc == null)
             {
-                if (account.AccountNumber == accountNumber) // Find the matching account
-                {
-                    if (account.Balance >= amount)
-                    {
-                        account.Balance -= amount;
-                        Console.WriteLine($"Withdrawal of {amount} successful. New balance: {account.Balance}");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Insufficient funds for this withdrawal.");
-                    }
-                    return; // Exit after processing the account
-                }
+                Console.WriteLine("Account not found.");
+                return;
             }
 
-            Console.WriteLine("Account not found."); // If no matching account is found
+            acc.Withdraw(amount);
         }
+
 
         public void DepositFunds(string accountNumber, decimal amount)
         {
-            foreach (var account in Accounts)
+            var acc = GetAccountByNumber(accountNumber);
+            if (acc == null)
             {
-                if (account.AccountNumber == accountNumber)
-                {
-                        account.Balance += amount;
-                        Console.WriteLine($"Deposit of {amount} successful. New balance: {account.Balance}");
-                   
-                        return; 
-                }
+                Console.WriteLine("Account not found.");
+                return;
             }
 
-            Console.WriteLine("Account not found."); 
+            acc.Deposit(amount); // All validation happens in the account class
         }
+
 
         public void ListAccounts()
         {
-            foreach (var account in Accounts)
+            if (Accounts.Count == 0)
             {
-                Console.WriteLine($"Account Number: {account.AccountNumber}, Balance: {account.Balance}, Status: {account.Status}");
+                Console.WriteLine("No accounts yet.");
+                return;
             }
+
+            Console.WriteLine("Your accounts:");
+            foreach (var account in Accounts)
+                Console.WriteLine($"Bankgiro: {account.AccountNumber} | {account.Currency} | Balance: {account.Balance} | Status: {account.Status}");
         }
 
         public void TransferBetweenOwnAccounts(decimal amount)
