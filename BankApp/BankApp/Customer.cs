@@ -166,10 +166,7 @@ namespace BankApp
         public void ApplyForLoan(decimal loanAmount, SystemOwner owner)
         {
             
-            // TODO: If allowed, create a new Loan object (use Loan constructor) and add it to Loans list
-            // TODO: Otherwise, display a message that the loan request exceeds allowed limit
-
-            decimal totalBalance = 0; 
+           decimal totalBalance = 0; 
 
             foreach (var account in Accounts)
             {
@@ -183,13 +180,20 @@ namespace BankApp
                 var loanAccount = GetAccountByNumber(accountNumber);
                 if (loanAccount != null)
                 {
-                    loanAccount.Balance += loanAmount;
+                    Loan loan = new Loan(loanAmount, 5f, DateTime.Now, DateTime.Now.AddYears(1)); // Create loan object from Loan class constructor
+                    Loans.Add(loan); // Loans list object was created globally in this class
+                    loanAccount.Balance += loanAmount; // Add the loan amount to the account in question 
                 }
                 else
                 {
                     Console.WriteLine($"Account {accountNumber} not found. Please try again.");
                 }
             }
+            else
+            {
+                Console.WriteLine("Loan amount is too high.");
+            }
+
         }
 
         public void TransactionHistory()

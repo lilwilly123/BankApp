@@ -171,6 +171,54 @@ namespace BankApp
 
         public void ChangeCurrencyRates() // Update exchange rates
         {
+            Console.WriteLine("Change currency rate");
+
+            foreach (var rate in CurrencyRate.rates)
+            {
+                Console.WriteLine($"{rate.Key.From} -> {rate.Key.To}: {rate.Value}");
+            }
+
+            Console.WriteLine("Please select currency rate (eg. USD/SEK/EUR), to exchange from: ");
+            string fromCurrency = Console.ReadLine();
+
+            Console.WriteLine("Please select currency rate (eg. USD/SEK/EUR), to exchange to: ");
+            string toCurrency = Console.ReadLine();
+
+            Console.WriteLine("Please write in decimal form, the new rate: ");
+            decimal newRate = decimal.Parse(Console.ReadLine());
+
+            // Convert input strings to CurrencyType enums — required since rates use enums, not strings
+            var from = Enum.Parse<CurrencyType>(fromCurrency, true);
+            var to = Enum.Parse<CurrencyType>(toCurrency, true);
+
+            // Create a tuple key (From, To) to check if the rate exists or to add a new one
+            var ratePair = (from, to);
+
+            if (CurrencyRate.rates.ContainsKey(ratePair))
+            {
+                CurrencyRate.rates[ratePair] = newRate;
+                Console.WriteLine("Rate updated successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Rate pair not found, do you want to add it? (y/n): ");
+                string answer = Console.ReadLine();
+                if (answer == "y")
+                {
+                    CurrencyRate.rates.Add(ratePair, newRate);
+                    Console.WriteLine("Rate pair added along with a exchange rate.");
+                }
+                else
+                {
+                    Console.WriteLine("Rate pair not added. Exiting.");
+                    return;
+                }
+            }
+
+            foreach (var rate in CurrencyRate.rates)
+            {
+                Console.WriteLine($"{rate.Key.From} -> {rate.Key.To}: {rate.Value}");
+            }
 
         }
 
