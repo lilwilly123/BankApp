@@ -15,7 +15,7 @@ namespace BankApp
     }
     internal class CurrencyRate
     {
-        private static readonly Dictionary<(CurrencyType From, CurrencyType To), decimal> _rates =
+        public static Dictionary<(CurrencyType From, CurrencyType To), decimal> _rates =
          new Dictionary<(CurrencyType, CurrencyType), decimal>
          {
             {(CurrencyType.USD, CurrencyType.EUR), 0.92m}, // the "m" or "M" suffix defines the decimal number as an actual decimal (its by default a double)
