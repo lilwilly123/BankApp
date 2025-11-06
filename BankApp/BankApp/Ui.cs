@@ -129,7 +129,7 @@ namespace BankApp
                         Console.Write("Due date(yyyy-mm-dd) ");
                         DateTime DueDate = DateTime.Parse(Console.ReadLine());
 
-                        Loan newloan = new Loan(loanId, user["Username"].ToString(), principalAmount, interestRate, StartDate, DueDate);
+                        Loan newloan = new Loan(principalAmount, interestRate, StartDate, DueDate);
                         Console.WriteLine($"Loan created! Outstanding amount: {newloan.OutstandingAmount}");
                         break;
                     case "6":

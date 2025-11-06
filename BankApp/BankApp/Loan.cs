@@ -32,7 +32,7 @@ namespace BankApp
 
             
             PrincipalAmount = principalamount;
-            
+            OutstandingAmount = principalamount;
             InterestRatePercent = interestratepercent;
             StartDate = startdate;
             DueDate = duedate;
@@ -56,7 +56,7 @@ namespace BankApp
         }
         public void CheckDue(DateTime Currentdate)
         {
-            if (Status == LoanStatus.Activ && Currentdate < DueDate && OutstandingAmount > 0) ;
+            if (Status == LoanStatus.Activ && Currentdate < DueDate && OutstandingAmount > 0) 
             Status = LoanStatus.Defaulted;
         }
         public void CloseLoan()

@@ -196,9 +196,9 @@ namespace BankApp
         // (e.g., USD → EUR) along with its current exchange rate.
         public void ViewCurrencyExchangeRates()
         {
-            foreach (var rate in CurrencyRates)
+            foreach (var rate in CurrencyRate.rates)
             {
-                Console.WriteLine($"{rate.ExchangeRate} {rate.FromCurrency} {rate.ToCurrency}");
+                Console.WriteLine($"{rate.Key.From} {rate.Key.To} {rate.Value}");
             }
         }
 
