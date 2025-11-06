@@ -11,9 +11,6 @@ namespace BankApp
         // Global lists shared across the system: 
         // TransactionList stores all transactions made in the bank,
         // CurrencyRates holds all defined currency exchange rates.
-
-        public static List<Transaction> TransactionList = new List<Transaction>();
-
         public static List<CurrencyRate> CurrencyRates = new List<CurrencyRate>();
         public string Name { get; set; } // Customer's full name    
         public string CustomerID { get; set; } // Unique identifier for the customer
@@ -32,124 +29,238 @@ namespace BankApp
         {
             Console.Write("Choose currency (SEK/EUR/USD): ");
             string curr = Console.ReadLine()?.Trim().ToUpper();
-            if (string.IsNullOrWhiteSpace(curr)) curr = "SEK";
+
+            // List of allowed currencies
+            string[] validCurrencies = { "SEK", "EUR", "USD" };
+
+            // Check if the input is valid
+            if (!validCurrencies.Contains(curr))
+            {
+                Console.WriteLine("Invalid currency. Defaulting to SEK.");
+                curr = "SEK";
+            }
 
             var newAccount = new Account(currency: curr, initialBalance: 0m);
-            Accounts.Add(newAccount); // Add the new account to the customer's account list
+            Accounts.Add(newAccount);
 
-            Console.WriteLine($"Account created! Number: {newAccount.AccountNumber} | Currency: {newAccount.Currency} | Balance: {newAccount.Balance}");
+            Console.WriteLine($"Account created!");
+            Console.WriteLine($"Bankgiro: {newAccount.AccountNumber}");
+            Console.WriteLine($"Currency: {newAccount.Currency}");
+            Console.WriteLine($"Balance:  {newAccount.Balance}");
         }
 
-        public void WithdrawFunds(string accountNumber, decimal amount)
-        {
-            var acc = GetAccountByNumber(accountNumber);
-            if (acc == null)
-            {
-                Console.WriteLine("Account not found.");
-                return;
-            }
-
-            acc.Withdraw(amount);
-        }
-
-
-        public void DepositFunds(string accountNumber, decimal amount)
-        {
-            var acc = GetAccountByNumber(accountNumber);
-            if (acc == null)
-            {
-                Console.WriteLine("Account not found.");
-                return;
-            }
-
-            acc.Deposit(amount); // All validation happens in the account class
-        }
-
-
-        public void ListAccounts()
+        //---------------
+        //Withdraw Funds
+        //---------------
+        public void WithdrawFunds()
         {
             if (Accounts.Count == 0)
             {
-                Console.WriteLine("No accounts yet.");
+                Console.WriteLine("You have no accounts.");
                 return;
             }
 
-            Console.WriteLine("Your accounts:");
+            Console.WriteLine("\nChoose an account to withdraw from:");
+            for (int i = 0; i < Accounts.Count; i++)
+                Console.WriteLine($"{i + 1}. {Accounts[i].AccountNumber} | {Accounts[i].Currency} | Balance: {Accounts[i].Balance}");
+
+            Console.Write("\nChoose (1 - {0}): ", Accounts.Count);
+
+            if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > Accounts.Count)
+            {
+                Console.WriteLine("Invalid selection.");
+                return;
+            }
+
+            var sourceAccount = Accounts[choice - 1];
+
+            Console.Write("Amount: ");
+            if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
+            {
+                Console.WriteLine("Invalid amount.");
+                return;
+            }
+
+            SystemOwner.PendingTransactions.Add(new Transaction(
+                sourceAccount.AccountNumber,
+                "Cash",
+                amount,
+                Transaction.TransactionType.Withdrawal
+            ));
+
+            Console.WriteLine($"Withdrawal scheduled (waiting for Admin to process).");
+        }
+
+        //-----------------
+        //Deposit funds
+        //-----------------
+        public void DepositFunds()
+        {
+            if (Accounts.Count == 0)
+            {
+                Console.WriteLine("You have no accounts.");
+                return;
+            }
+
+            Console.WriteLine("\nChoose an account to deposit into:");
+            for (int i = 0; i < Accounts.Count; i++)
+                Console.WriteLine($"{i + 1}. {Accounts[i].AccountNumber} | {Accounts[i].Currency} | Balance: {Accounts[i].Balance}");
+
+            Console.Write("\nChoose (1 - {0}): ", Accounts.Count);
+            if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > Accounts.Count)
+            {
+                Console.WriteLine("Invalid selection.");
+                return;
+            }
+
+            var selectedAccount = Accounts[choice - 1];
+
+            Console.Write("Amount: ");
+            if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
+            {
+                Console.WriteLine("Invalid amount.");
+                return;
+            }
+
+            // Add to pending (admin will process later)
+            SystemOwner.PendingTransactions.Add(new Transaction(
+                "Bank",
+                selectedAccount.AccountNumber,
+                amount,
+                Transaction.TransactionType.Deposit
+            ));
+
+            Console.WriteLine($"Deposit scheduled and placed in Pending Transactions.");
+        }
+
+
+        //---------------------
+        //List accounts
+        //---------------------
+        public void ListAccounts()
+        {
+            Console.WriteLine("=== Your Accounts ===\n");
+
+            if (Accounts.Count == 0)
+            {
+                Console.WriteLine("You currently have no accounts.");
+                return;
+            }
+
             foreach (var account in Accounts)
-                Console.WriteLine($"Bankgiro: {account.AccountNumber} | {account.Currency} | Balance: {account.Balance} | Status: {account.Status}");
+                Console.WriteLine($"[{account.AccountNumber}] {account.Currency} | Balance: {account.Balance} | Status: {account.Status}");
         }
 
-        public void TransferBetweenOwnAccounts(decimal amount)
+        //----------------
+        //Transaction own
+        //----------------
+        public void TransferBetweenOwnAccounts()
         {
-            Console.Write("Please enter source account number: "); 
-            string sourceAccount = Console.ReadLine();
-
-            Console.Write("Please enter target account number: ");
-            string targetAccount = Console.ReadLine(); 
-
-            foreach (var source in Accounts)
+            if (Accounts.Count < 2)
             {
-                if (source.AccountNumber == sourceAccount) 
-                {
-                    if (source.Balance >= amount)
-                    {
-                        foreach (var target in Accounts)
-                        {
-                            if (target.AccountNumber == targetAccount)
-                            {
-                                target.Balance += amount;
-                                source.Balance -= amount; 
-                                Console.WriteLine($"Withdrawal of {amount} successful. New balance: {target.Balance}");
-                            }
-                        }                        
-                    }
-                    else
-                    {
-                        Console.WriteLine("Insufficient funds for this withdrawal.");
-                    }
-                    return; 
-                }
+                Console.WriteLine("You need at least two accounts to transfer between them.");
+                return;
             }
 
-            Console.WriteLine("Accounts not found.");
+            Console.WriteLine("\nYour accounts:");
+            for (int i = 0; i < Accounts.Count; i++)
+                Console.WriteLine($"{i + 1}. {Accounts[i].AccountNumber} | {Accounts[i].Currency} | Balance: {Accounts[i].Balance}");
 
-        }
-
-        public void TransferToOtherCustomer(Customer targetCustomer, decimal amount) 
-        {
-            Console.Write("Please enter your account number to send from: ");
-            string sourceAccount = Console.ReadLine();
-
-            Console.Write("Please enter the customer account number to send to: ");
-            string targetAccount = Console.ReadLine();
-
-            foreach (var source in Accounts)
+            Console.Write("\nSelect SOURCE account (1 - {0}): ", Accounts.Count);
+            if (!int.TryParse(Console.ReadLine(), out int srcIndex) || srcIndex < 1 || srcIndex > Accounts.Count)
             {
-                if (source.AccountNumber == sourceAccount)
-                {
-                    if (source.Balance >= amount)
-                    {
-                        foreach (var target in targetCustomer.Accounts) // Goes through the accounts for the target customer and not the customer's own accounts
-                        {
-                            if (target.AccountNumber == targetAccount)
-                            {
-                                target.Balance += amount;
-                                source.Balance -= amount;
-                                Console.WriteLine($"Withdrawal of {amount} successful. New balance: {target.Balance}");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Insufficient funds for this withdrawal.");
-                    }
-                    return;
-
-                }
+                Console.WriteLine("Invalid selection.");
+                return;
             }
 
-            Console.WriteLine("Accounts not found.");
+            Console.Write("Select TARGET account (1 - {0}): ", Accounts.Count);
+            if (!int.TryParse(Console.ReadLine(), out int tgtIndex) || tgtIndex < 1 || tgtIndex > Accounts.Count)
+            {
+                Console.WriteLine("Invalid selection.");
+                return;
+            }
+
+            if (srcIndex == tgtIndex)
+            {
+                Console.WriteLine("You cannot transfer to the same account.");
+                return;
+            }
+
+            var source = Accounts[srcIndex - 1];
+            var target = Accounts[tgtIndex - 1];
+
+            Console.Write("Amount: ");
+            decimal amount;
+            if (!decimal.TryParse(Console.ReadLine(), out amount) || amount <= 0)
+            {
+                Console.WriteLine("Invalid amount.");
+                return;
+            }
+
+            SystemOwner.PendingTransactions.Add(new Transaction(
+                source.AccountNumber,
+                target.AccountNumber,
+                amount,
+                Transaction.TransactionType.Transfer
+            ));
+
+            Console.WriteLine($"Transfer scheduled (waiting for Admin to process).");
         }
+
+        //--------------------
+        //Transaction Other
+        //--------------------
+        public void TransferToOtherCustomer(Customer targetCustomer)
+        {
+            if (Accounts.Count == 0)
+            {
+                Console.WriteLine("You have no accounts.");
+                return;
+            }
+
+            Console.WriteLine("\nYour accounts:");
+            for (int i = 0; i < Accounts.Count; i++)
+                Console.WriteLine($"{i + 1}. {Accounts[i].AccountNumber} | {Accounts[i].Currency} | Balance: {Accounts[i].Balance}");
+
+            Console.Write("\nSelect SOURCE account (1 - {0}): ", Accounts.Count);
+            if (!int.TryParse(Console.ReadLine(), out int srcIndex) || srcIndex < 1 || srcIndex > Accounts.Count)
+            {
+                Console.WriteLine("Invalid selection.");
+                return;
+            }
+
+            var source = Accounts[srcIndex - 1];
+
+            Console.Write("Recipient account number: ");
+            string targetAccountNumber = Console.ReadLine()?.Trim();
+
+            var target = targetCustomer?.Accounts?.FirstOrDefault(a => a.AccountNumber == targetAccountNumber);
+            if (target == null)
+            {
+                Console.WriteLine("Target account not found.");
+                return;
+            }
+
+            Console.Write("Amount: ");
+            decimal amount;
+            if (!decimal.TryParse(Console.ReadLine(), out amount) || amount <= 0)
+            {
+                Console.WriteLine("Invalid amount.");
+                return;
+            }
+
+            SystemOwner.PendingTransactions.Add(new Transaction(
+                source.AccountNumber,
+                target.AccountNumber,
+                amount,
+                Transaction.TransactionType.Transfer
+            ));
+
+            Console.WriteLine("Transfer scheduled (waiting for Admin to process).");
+        }
+        //-----------------
+        //Apply loan
+        //-----------------
         public void ApplyForLoan(decimal loanAmount, SystemOwner owner)
         {
             
@@ -175,7 +286,6 @@ namespace BankApp
                 {
                     Console.WriteLine($"Account {accountNumber} not found. Please try again.");
                 }
-
             }
             else
             {
@@ -183,13 +293,29 @@ namespace BankApp
             }
 
         }
-
+        //----------------------
+        //Trasaction History
+        //----------------------
         public void TransactionHistory()
         {
-            foreach (var transaction in TransactionList) // uses the shared list.
+            Console.WriteLine("=== Your Transaction History ===\n");
+
+            // Get list of customer's account numbers
+            var myAccounts = Accounts.Select(a => a.AccountNumber).ToList();
+
+            // Filter global transaction list to only show relevant ones
+            var myTransactions = SystemOwner.TransactionList
+                .Where(t => myAccounts.Contains(t.Sender) || myAccounts.Contains(t.Target))
+                .ToList();
+
+            if (myTransactions.Count == 0)
             {
-                transaction.PrintTransaction(); // Leverages the existing PrintTransaction() method from Transaction class
+                Console.WriteLine("No transactions yet.");
+                return;
             }
+
+            foreach (var t in myTransactions)
+                t.PrintTransaction();
         }
 
         // Loops through all available currency rates and prints each conversion pair 
@@ -214,7 +340,16 @@ namespace BankApp
             }
             return null; // Return null if no account object was found
         }
+
+        //----------------
+        //Transaction Log
+        //----------------
+        public void LogTransaction(string sender, string target, decimal amount, Transaction.TransactionType type)
+        {
+            var t = new Transaction(sender, target, amount, type);
+            SystemOwner.PendingTransactions.Add(t);
+
+            Console.WriteLine("Transaction scheduled and will complete after the transfer delay.");
+        }
     }
-
-
 }

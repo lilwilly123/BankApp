@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static BankApp.Transaction;
 
 namespace BankApp
 {
@@ -33,6 +34,7 @@ namespace BankApp
             AccountNumber = GenerateUniqueAccountNumber();
             Currency = currency.ToUpper();
             Balance = initialBalance;
+            Status = AccountStatus.Active;
         }
 
 
@@ -54,7 +56,6 @@ namespace BankApp
             }
 
             Balance += amount;
-            Console.WriteLine($"Deposited {amount} {Currency}. New balance: {Balance} {Currency}");
             return true;
         }
 
@@ -82,7 +83,6 @@ namespace BankApp
             }
 
             Balance -= amount;
-            Console.WriteLine($"Withdrew {amount} {Currency}. New balance: {Balance} {Currency}");
             return true;
         }
 

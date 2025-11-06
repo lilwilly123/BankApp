@@ -47,14 +47,11 @@ namespace BankApp
         // Displaying transaction details
         public void PrintTransaction()
         {
-            Console.WriteLine("Transaction Details:");
-            Console.WriteLine($"  From: {Sender}");
-            Console.WriteLine($"  To: {Target}");
-            Console.WriteLine($"  Amount: {Amount:C}");
-            Console.WriteLine($"  Type: {TypeOfTransaction}");
-            Console.WriteLine($"  Status: {TransactionStatus}");
-            Console.WriteLine($"  Date: {TransactionDate}");
-            Console.WriteLine();
+            Console.WriteLine("────────────────────────────────────────");
+            Console.WriteLine($"{TransactionDate:g} | {TypeOfTransaction} | {TransactionStatus}");
+            Console.WriteLine($"From: {Sender}");
+            Console.WriteLine($"To:   {Target}");
+            Console.WriteLine($"Amount: {Amount} kr");
         }
     }
 }
