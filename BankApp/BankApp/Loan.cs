@@ -20,6 +20,8 @@ namespace BankApp
         public decimal PrincipalAmount { get; private set; }
         public decimal OutstandingAmount { get; private set; }
         public float InterestRatePercent { get; private set; }
+
+        public string LoanID { get; private set; }
         public DateTime StartDate { get; private set; }
         public DateTime DueDate { get; private set; }
         public LoanStatus Status { get; private set; }
