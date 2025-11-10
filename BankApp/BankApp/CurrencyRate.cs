@@ -16,16 +16,29 @@ namespace BankApp
     internal class CurrencyRate
     {
         public static Dictionary<(CurrencyType From, CurrencyType To), decimal> rates =
-         new Dictionary<(CurrencyType, CurrencyType), decimal>
-         {
-            {(CurrencyType.USD, CurrencyType.EUR), 0.92m}, // the "m" or "M" suffix defines the decimal number as an actual decimal (its by default a double)
-            {(CurrencyType.EUR, CurrencyType.USD), 1.09m},
-            {(CurrencyType.USD, CurrencyType.SEK), 11.0m},
-            {(CurrencyType.SEK, CurrencyType.USD), 0.091m},
-            {(CurrencyType.USD, CurrencyType.JPY), 150.0m},
-            {(CurrencyType.JPY, CurrencyType.USD), 0.0067m},
-            // we may keep on adding more pairs if needed!
-         };
+        new Dictionary<(CurrencyType, CurrencyType), decimal>()
+        {
+            // ===== Base Currency: SEK =====
+            { (CurrencyType.SEK, CurrencyType.USD), 0.091m },
+            { (CurrencyType.SEK, CurrencyType.EUR), 0.083m },
+            { (CurrencyType.SEK, CurrencyType.JPY), 16.30m },
+
+            // Reverse conversions
+            { (CurrencyType.USD, CurrencyType.SEK), 1 / 0.091m },
+            { (CurrencyType.EUR, CurrencyType.SEK), 1 / 0.083m },
+            { (CurrencyType.JPY, CurrencyType.SEK), 1 / 16.30m },
+
+            // Cross conversions via SEK
+            { (CurrencyType.USD, CurrencyType.EUR), (1 / 0.091m) * 0.083m },
+            { (CurrencyType.EUR, CurrencyType.USD), (1 / 0.083m) * 0.091m },
+
+            { (CurrencyType.USD, CurrencyType.JPY), (1 / 0.091m) * 16.30m },
+            { (CurrencyType.JPY, CurrencyType.USD), (1 / 16.30m) * 0.091m },
+
+            { (CurrencyType.EUR, CurrencyType.JPY), (1 / 0.083m) * 16.30m },
+            { (CurrencyType.JPY, CurrencyType.EUR), (1 / 16.30m) * 0.083m }
+        };
+
         // properties 
         public CurrencyType FromCurrency { get; private set; }
         public CurrencyType ToCurrency { get; private set; }

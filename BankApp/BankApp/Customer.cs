@@ -18,11 +18,9 @@ namespace BankApp
         public List<Loan> Loans { get; set; } = new List<Loan>(); // List of customer's loans
 
 
-
-
-        //---------------
+        //------------------------
         //Create (Regular) Account
-        //---------------
+        //-------------------------
         public void CreateAccount()
         {
             Console.Write("Choose currency (SEK/EUR/USD): ");
@@ -40,16 +38,17 @@ namespace BankApp
 
             var newAccount = new Account(currency: curr, initialBalance: 0m);
             Accounts.Add(newAccount);
+            SystemOwner.AllAccounts.Add(newAccount);
 
-            Console.WriteLine($"Account created!");
+            UiStyle.Success("Account created successfully.");
             Console.WriteLine($"Bankgiro: {newAccount.AccountNumber}");
             Console.WriteLine($"Currency: {newAccount.Currency}");
             Console.WriteLine($"Balance:  {newAccount.Balance}");
         }
 
-        //---------------
+        //----------------------
         //Create Savings Account
-        //---------------
+        //-----------------------
 
         public void CreateSavingsAccount()
         {
@@ -57,8 +56,9 @@ namespace BankApp
             SavingsAccount newAccount = new SavingsAccount();
             newAccount.ApplyInterest(); // This applies interest from SavingsAccount class
             Accounts.Add(newAccount);
+            SystemOwner.AllAccounts.Add(newAccount);
 
-            Console.WriteLine($"Saving Account created!");
+            UiStyle.Success("Account created!");
             Console.WriteLine($"Bankgiro: {newAccount.AccountNumber}");
             Console.WriteLine($"Currency: {newAccount.Currency}");
             Console.WriteLine($"Balance:  {newAccount.Balance}");
@@ -83,13 +83,13 @@ namespace BankApp
 
             if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > Accounts.Count)
             {
-                Console.WriteLine("Invalid selection.");
+                UiStyle.Error("Invalid selection.");
                 return;
             }
 
             var sourceAccount = Accounts[choice - 1];
 
-            Console.Write("Amount: ");
+            UiStyle.Prompt("Amount: ");
             if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
             {
                 Console.WriteLine("Invalid amount.");
@@ -124,22 +124,22 @@ namespace BankApp
             Console.Write("\nChoose (1 - {0}): ", Accounts.Count);
             if (!int.TryParse(Console.ReadLine(), out int choice) || choice < 1 || choice > Accounts.Count)
             {
-                Console.WriteLine("Invalid selection.");
+                UiStyle.Error("Invalid selection.");
                 return;
             }
 
             var selectedAccount = Accounts[choice - 1];
 
-            Console.Write("Amount: ");
+            UiStyle.Prompt("Amount: ");
             if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
             {
-                Console.WriteLine("Invalid amount.");
+                UiStyle.Error("Invalid amount.");
                 return;
             }
 
             // Add to pending (admin will process later)
             SystemOwner.PendingTransactions.Add(new Transaction(
-                "Bank",
+                "?",
                 selectedAccount.AccountNumber,
                 amount,
                 Transaction.TransactionType.Deposit
@@ -147,7 +147,6 @@ namespace BankApp
 
             Console.WriteLine($"Deposit scheduled and placed in Pending Transactions.");
         }
-
 
         //---------------------
         //List accounts
@@ -158,7 +157,7 @@ namespace BankApp
 
             if (Accounts.Count == 0)
             {
-                Console.WriteLine("You currently have no accounts.");
+                UiStyle.Error("You currently have no accounts.");
                 return;
             }
 
@@ -171,56 +170,79 @@ namespace BankApp
         //----------------
         public void TransferBetweenOwnAccounts()
         {
+            // User must have at least two accounts to transfer between them
             if (Accounts.Count < 2)
             {
-                Console.WriteLine("You need at least two accounts to transfer between them.");
+                UiStyle.Error("You need at least two accounts to perform a transfer.");
                 return;
             }
 
-            Console.WriteLine("\nYour accounts:");
+            Console.WriteLine("\nYour Accounts:");
             for (int i = 0; i < Accounts.Count; i++)
                 Console.WriteLine($"{i + 1}. {Accounts[i].AccountNumber} | {Accounts[i].Currency} | Balance: {Accounts[i].Balance}");
 
             Console.Write("\nSelect SOURCE account (1 - {0}): ", Accounts.Count);
             if (!int.TryParse(Console.ReadLine(), out int srcIndex) || srcIndex < 1 || srcIndex > Accounts.Count)
             {
-                Console.WriteLine("Invalid selection.");
+                UiStyle.Error("Invalid selection.");
                 return;
             }
 
             Console.Write("Select TARGET account (1 - {0}): ", Accounts.Count);
             if (!int.TryParse(Console.ReadLine(), out int tgtIndex) || tgtIndex < 1 || tgtIndex > Accounts.Count)
             {
-                Console.WriteLine("Invalid selection.");
+                UiStyle.Error("Invalid selection.");
                 return;
             }
 
             if (srcIndex == tgtIndex)
             {
-                Console.WriteLine("You cannot transfer to the same account.");
+                Console.WriteLine("Source and target accounts cannot be the same.");
                 return;
             }
 
             var source = Accounts[srcIndex - 1];
             var target = Accounts[tgtIndex - 1];
 
-            Console.Write("Amount: ");
-            decimal amount;
-            if (!decimal.TryParse(Console.ReadLine(), out amount) || amount <= 0)
+            UiStyle.Prompt("Amount: ");
+            if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
             {
-                Console.WriteLine("Invalid amount.");
+                Console.WriteLine("Invalid amount entered.");
                 return;
             }
 
+            // Check available balance including pending withdrawals
+            decimal available = GetAvailableBalance(source);
+            if (amount > available)
+            {
+                Console.WriteLine($"Insufficient funds. Available: {available} {source.Currency}");
+                return;
+            }
+
+            // Convert and round
+            decimal withdrawAmount = RoundCurrency(amount, source.Currency);
+            decimal convertedAmount = RoundCurrency(ConvertCurrency(amount, source.Currency, target.Currency), target.Currency);
+
+            // Withdrawal transaction: shows "money left SOURCE to go to TARGET"
             SystemOwner.PendingTransactions.Add(new Transaction(
                 source.AccountNumber,
                 target.AccountNumber,
-                amount,
-                Transaction.TransactionType.Transfer
+                withdrawAmount,
+                Transaction.TransactionType.Withdrawal
             ));
 
-            Console.WriteLine($"Transfer scheduled (waiting for Admin to process).");
+            // Deposit transaction: shows "money came from SOURCE to TARGET"
+            SystemOwner.PendingTransactions.Add(new Transaction(
+                source.AccountNumber,
+                target.AccountNumber,
+                convertedAmount,
+                Transaction.TransactionType.Deposit
+            ));
+
+            Console.WriteLine("Transfer scheduled (awaiting Admin approval).");
+            Console.WriteLine($"Will withdraw {withdrawAmount} {source.Currency} and deposit {convertedAmount} {target.Currency}.");
         }
+
 
         //--------------------
         //Transaction Other
@@ -229,50 +251,85 @@ namespace BankApp
         {
             if (Accounts.Count == 0)
             {
-                Console.WriteLine("You have no accounts.");
+                Console.WriteLine("You have no accounts to transfer from.");
                 return;
             }
 
-            Console.WriteLine("\nYour accounts:");
+            // Display sender's accounts (balance is okay for sender)
+            Console.WriteLine("\nYour Accounts:");
             for (int i = 0; i < Accounts.Count; i++)
                 Console.WriteLine($"{i + 1}. {Accounts[i].AccountNumber} | {Accounts[i].Currency} | Balance: {Accounts[i].Balance}");
 
             Console.Write("\nSelect SOURCE account (1 - {0}): ", Accounts.Count);
             if (!int.TryParse(Console.ReadLine(), out int srcIndex) || srcIndex < 1 || srcIndex > Accounts.Count)
             {
-                Console.WriteLine("Invalid selection.");
+                UiStyle.Error("Invalid selection.");
                 return;
             }
 
             var source = Accounts[srcIndex - 1];
 
-            Console.Write("Recipient account number: ");
-            string targetAccountNumber = Console.ReadLine()?.Trim();
-
-            var target = targetCustomer?.Accounts?.FirstOrDefault(a => a.AccountNumber == targetAccountNumber);
-            if (target == null)
+            // show recipient accounts without sensitive info
+            if (targetCustomer.Accounts.Count == 0) 
             {
-                Console.WriteLine("Target account not found.");
+                Console.WriteLine("Recipient has no accounts to receive transfers.");
                 return;
             }
 
-            Console.Write("Amount: ");
-            decimal amount;
-            if (!decimal.TryParse(Console.ReadLine(), out amount) || amount <= 0)
+            Console.WriteLine("\nRecipient Accounts:");
+            for (int i = 0; i < targetCustomer.Accounts.Count; i++)
+                Console.WriteLine($"{i + 1}. {targetCustomer.Accounts[i].AccountNumber} | {targetCustomer.Accounts[i].Currency}");
+
+            Console.Write("\nSelect RECIPIENT account (1 - {0}): ", targetCustomer.Accounts.Count);
+            if (!int.TryParse(Console.ReadLine(), out int tgtIndex) || tgtIndex < 1 || tgtIndex > targetCustomer.Accounts.Count)
+            {
+                UiStyle.Error("Invalid selection.");
+                return;
+            }
+
+            var target = targetCustomer.Accounts[tgtIndex - 1];
+
+            UiStyle.Prompt("Amount: ");
+            if (!decimal.TryParse(Console.ReadLine(), out decimal amount) || amount <= 0)
             {
                 Console.WriteLine("Invalid amount.");
                 return;
             }
 
+            // Balance check with pending transactions
+            decimal available = GetAvailableBalance(source);
+            if (amount > available)
+            {
+                Console.WriteLine($"Insufficient funds. Available: {available} {source.Currency}");
+                return;
+            }
+
+            // Convert & round
+            decimal withdrawAmount = RoundCurrency(amount, source.Currency);
+            decimal convertedAmount = RoundCurrency(ConvertCurrency(amount, source.Currency, target.Currency), target.Currency);
+
+            // Withdrawal transaction: shows "money left SOURCE to go to TARGET"
             SystemOwner.PendingTransactions.Add(new Transaction(
                 source.AccountNumber,
                 target.AccountNumber,
-                amount,
-                Transaction.TransactionType.Transfer
+                withdrawAmount,
+                Transaction.TransactionType.Withdrawal
             ));
 
-            Console.WriteLine("Transfer scheduled (waiting for Admin to process).");
+            // Deposit transaction: shows "money came from SOURCE to TARGET"
+            SystemOwner.PendingTransactions.Add(new Transaction(
+                source.AccountNumber,
+                target.AccountNumber,
+                convertedAmount,
+                Transaction.TransactionType.Deposit
+            ));
+
+
+
+            Console.WriteLine("Transfer scheduled (pending Admin approval).");
+            Console.WriteLine($"Will withdraw {withdrawAmount} {source.Currency} and deposit {convertedAmount} {target.Currency}.");
         }
+
         //-----------------
         //Apply loan
         //-----------------
@@ -313,7 +370,7 @@ namespace BankApp
         //----------------------
         public void TransactionHistory()
         {
-            Console.WriteLine("=== Your Transaction History ===\n");
+            UiStyle.Header("Your Transaction History");
 
             // Get list of customer's account numbers
             var myAccounts = Accounts.Select(a => a.AccountNumber).ToList();
@@ -365,6 +422,157 @@ namespace BankApp
             SystemOwner.PendingTransactions.Add(t);
 
             Console.WriteLine("Transaction scheduled and will complete after the transfer delay.");
+        }
+        //-----------------------
+        //Apply for loan
+        //-----------------------
+        public void ApplyLoan(SystemOwner owner)
+        {
+            // Must have at least one account to take a loan
+            if (Accounts == null || Accounts.Count == 0)
+            {
+                Console.WriteLine("You need an account before you can take a loan.");
+                return;
+            }
+
+            Console.WriteLine("=== Apply for Loan ===");
+
+            // Pick the payout account
+            Console.WriteLine("\nSelect the account to receive the loan (Enter to quit):");
+            for (int i = 0; i < Accounts.Count; i++)
+                Console.WriteLine($"{i + 1}. {Accounts[i].AccountNumber} | {Accounts[i].Currency} | Balance: {Accounts[i].Balance}");
+
+            Console.Write($"\nChoose (1 - {Accounts.Count}): ");
+            if (!int.TryParse(Console.ReadLine(), out int accChoice) || accChoice < 1 || accChoice > Accounts.Count)
+            {
+                UiStyle.Error("Invalid selection.");
+                return;
+            }
+
+            var payoutAccount = Accounts[accChoice - 1];
+
+            // Max amount is 5x total on all accounts for the user
+            var totalBalance = Accounts.Sum(a => a.Balance);
+            var maxLoan = totalBalance * owner.MaxLoanMultiplier;
+
+            //Chenks if the user has more than 0 on the account
+            if (maxLoan <= 0)
+            {
+                Console.WriteLine("You don't have enough money to make a loan");
+                return;
+            }
+
+            Console.WriteLine($"Max loan for this account is: {maxLoan}");
+            decimal loanAmount;
+            while (true)
+            {
+                Console.Write("Amount to loan: ");
+                if (decimal.TryParse(Console.ReadLine(), out loanAmount) && loanAmount > 0)
+                {
+                    if (loanAmount <= maxLoan) break;
+                    Console.WriteLine($"Amount exceeds the allowed maximum ({maxLoan}). Try a lower amount.");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid amount.");
+                    return;
+                }
+            }
+            // Choose (1/2/3 years)
+            int termYears = 0;
+            while (true)
+            {
+                Console.Write("Choose term (1, 2, or 3 years): ");
+                var termInput = Console.ReadLine();
+                if (termInput is "1" or "2" or "3")
+                {
+                    termYears = int.Parse(termInput);
+                    break;
+                }
+                Console.WriteLine("Invalid input, choose 1, 2 or 3.");
+            }
+
+            // Create loan object rate + due date are automatic
+            DateTime startDate = DateTime.Now;
+            var loan = new Loan(loanAmount, termYears, startDate);
+            Loans.Add(loan);
+
+            // Payout: schedule a deposit into the chosen account 
+            SystemOwner.PendingTransactions.Add(new Transaction(
+                "Bank",                              
+                payoutAccount.AccountNumber,         
+                loanAmount,
+                Transaction.TransactionType.Deposit 
+            ));
+
+            Console.WriteLine();
+            Console.WriteLine("Loan approved and payout scheduled (pending Admin processing).");
+            Console.WriteLine($"Principal: {loan.PrincipalAmount}");
+            Console.WriteLine($"Rate: {loan.InterestRatePercent:0.##}%");
+            Console.WriteLine($"Term: {loan.TermYears} years");
+            Console.WriteLine($"Start: {loan.StartDate:d}");
+            Console.WriteLine($"Due: {loan.DueDate:d}");
+            Console.WriteLine($"Outstanding amount: {loan.OutstandingAmount}");
+        }
+
+        //------------------------
+        //Convert currency
+        //------------------------
+        private decimal ConvertCurrency(decimal amount, string fromCurrency, string toCurrency)
+        {
+            // If same currency, no conversion needed
+            if (fromCurrency == toCurrency)
+                return amount;
+
+            // Try to convert string -> CurrencyType enum
+            if (!Enum.TryParse(fromCurrency, out CurrencyType fromType) ||
+                !Enum.TryParse(toCurrency, out CurrencyType toType))
+            {
+                throw new Exception("Currency type not recognized.");
+            }
+
+            // Look up conversion rate
+            if (!CurrencyRate.rates.TryGetValue((fromType, toType), out var rate))
+            {
+                throw new Exception($"No conversion rate defined for {fromCurrency} -> {toCurrency}");
+            }
+
+            // Convert amount
+            return amount * rate;
+        }
+
+        //--------------------------
+        // Currency rounding helpers
+        //--------------------------
+        private static int CurrencyDecimals(string currency) => currency.ToUpper() switch
+        {
+            "JPY" => 0,
+            _ => 2, // Default to 2 decimals for most currencies we support
+        };
+
+        // Uses "AwayFromZero" so values don't get rounded weirdly when converting.
+        private static decimal RoundCurrency(decimal amount, string currency)
+        {
+            int decimals = CurrencyDecimals(currency);
+            return Math.Round(amount, decimals, MidpointRounding.AwayFromZero);
+        }
+
+        // Returns how much money the user can *actually* spend right now.
+        // This includes pending transfers that haven't been processed yet,
+        private decimal GetAvailableBalance(Account account)
+        {
+            // Total amount currently waiting to leave this account
+            decimal pendingOut = SystemOwner.PendingTransactions
+                .Where(t => t.Sender == account.AccountNumber)
+                .Sum(t => t.Amount);
+
+            // Total amount currently waiting to come in
+            decimal pendingIn = SystemOwner.PendingTransactions
+                .Where(t => t.Target == account.AccountNumber)
+                .Sum(t => t.Amount);
+
+            // Real available money = Current balance - outgoing pending + incoming pending
+            return account.Balance - pendingOut + pendingIn;
         }
     }
 }

@@ -1,68 +1,70 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BankApp
 {
     internal class SystemOwner : Admin
     {
-        public static List<Transaction> TransactionList = new List<Transaction>(); // Static so all transactions are shared globally
+        public static List<Account> AllAccounts = new List<Account>();       // ✅ RESTORED
+        public static List<Transaction> TransactionList = new List<Transaction>();
         public static List<Transaction> PendingTransactions = new List<Transaction>();
 
-        public string OwnerID { get; set; } // Unique identifier for the system owner
-        public string Name { get; set; } // System owner's full name
-        public int MaxLoanMultiplier { get; set; } = 5; // e.g., 5 means max loan = 5 × total deposits
+        public string OwnerID { get; set; }
+        public string Name { get; set; }
+        public int MaxLoanMultiplier { get; set; } = 5;
+        public int TransferDelayMinutes { get; set; } = 15;
 
-        public int TransferDelayMinutes { get; set; } = 15; // 15 minute wait/delay time before transfer goes through 
-
-
-        // List<Account> is the collection of all accounts to loop through
-        public void ViewAllAccounts(List<Account> accounts)
+        // Show all accounts
+        public void ViewAllAccounts()
         {
-            foreach (var account in accounts)
+            if (AllAccounts.Count == 0)
             {
-                Console.WriteLine($"{account.AccountNumber} {account.OwnerID} {account.AccountName}");
+                Console.WriteLine("No accounts in the system.");
+                return;
             }
-       
+
+            Console.WriteLine("=== All Accounts ===");
+            foreach (var account in AllAccounts)
+            {
+                Console.WriteLine($"{account.AccountNumber} | {account.Currency} | Balance: {account.Balance} | Status: {account.Status}");
+            }
         }
 
+        // Show all transactions
         public void ViewAllTranscations()
         {
-            foreach (var transaction in TransactionList) // uses the shared list.
+            if (TransactionList.Count == 0)
             {
-                transaction.PrintTransaction(); // Leverages the existing PrintTransaction() method from Transaction class
+                Console.WriteLine("No completed transactions yet.");
+                return;
             }
 
+            foreach (var transaction in TransactionList)
+                transaction.PrintTransaction();
         }
 
-        // e.g., “max loan = 5× total deposits”
+        // Change loan policy
         public void SetLoanPolicy(int maxLoanMultiplier)
         {
             MaxLoanMultiplier = maxLoanMultiplier;
         }
 
-      
-        // Set or change that 15-minute wait
-        public void SetTransferDelayPolicy(int transferDelayMinutes) // Parameter lets the owner adjust both policy dynamically
+        // Change transfer delay
+        public void SetTransferDelayPolicy(int transferDelayMinutes)
         {
             TransferDelayMinutes = transferDelayMinutes;
         }
 
-        //----------------------------
-        //Process pending transactions
-        //----------------------------
+        // Process pending transactions
         public void ProcessPendingTransactions(List<Customer> customers)
         {
-            var transactionsToFinish = PendingTransactions.ToList(); //Process ALL pending now
+            var transactionsToFinish = PendingTransactions.ToList(); // copy to avoid modification during loop
 
             foreach (var tx in transactionsToFinish)
             {
-                var senderAcc = customers.SelectMany(c => c.Accounts)
-                                         .FirstOrDefault(a => a.AccountNumber == tx.Sender);
-                var targetAcc = customers.SelectMany(c => c.Accounts)
-                                         .FirstOrDefault(a => a.AccountNumber == tx.Target);
+                var senderAcc = AllAccounts.FirstOrDefault(a => a.AccountNumber == tx.Sender);
+                var targetAcc = AllAccounts.FirstOrDefault(a => a.AccountNumber == tx.Target);
 
                 bool applied = false;
 
@@ -71,9 +73,11 @@ namespace BankApp
                     case Transaction.TransactionType.Deposit:
                         applied = (targetAcc != null) && targetAcc.Deposit(tx.Amount);
                         break;
+
                     case Transaction.TransactionType.Withdrawal:
                         applied = (senderAcc != null) && senderAcc.Withdraw(tx.Amount);
                         break;
+
                     case Transaction.TransactionType.Transfer:
                         bool w = (senderAcc != null) && senderAcc.Withdraw(tx.Amount);
                         bool d = (targetAcc != null) && targetAcc.Deposit(tx.Amount);
@@ -87,8 +91,7 @@ namespace BankApp
                 PendingTransactions.Remove(tx);
             }
 
-            Console.WriteLine("All pending transactions have been processed by Admin.");
+            Console.WriteLine("All pending transactions have been processed.");
         }
-
     }
 }

@@ -47,11 +47,33 @@ namespace BankApp
         // Displaying transaction details
         public void PrintTransaction()
         {
-            Console.WriteLine("────────────────────────────────────────");
-            Console.WriteLine($"{TransactionDate:g} | {TypeOfTransaction} | {TransactionStatus}");
+            // Resolve currency from sender to target
+            string currency = "";
+            var senderAcc = SystemOwner.AllAccounts.FirstOrDefault(a => a.AccountNumber == Sender);
+            var targetAcc = SystemOwner.AllAccounts.FirstOrDefault(a => a.AccountNumber == Target);
+            if (senderAcc != null) currency = senderAcc.Currency;
+            else if (targetAcc != null) currency = targetAcc.Currency;
+
+            //Pick color
+            ConsoleColor typeColor = TypeOfTransaction switch
+            {
+                TransactionType.Deposit => ConsoleColor.DarkGreen,
+                TransactionType.Withdrawal => ConsoleColor.DarkRed
+            };
+
+            Console.WriteLine("────────────────────────────────────────");   
+            Console.Write($"{TransactionDate:g} | ");
+            var prev = Console.ForegroundColor;
+            Console.ForegroundColor = typeColor;
+            Console.Write(TypeOfTransaction);
+            Console.ForegroundColor = prev;
+            Console.WriteLine($" | {TransactionStatus}");
+
+            
             Console.WriteLine($"From: {Sender}");
             Console.WriteLine($"To:   {Target}");
-            Console.WriteLine($"Amount: {Amount} kr");
+            Console.WriteLine($"Amount: {Amount} {currency}");
         }
+
     }
 }

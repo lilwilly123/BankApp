@@ -10,8 +10,6 @@ namespace BankApp
     public class Admin
     {
         
-        public string Name { get; set; } // Admin's full name
-
         public enum UserRole { Customer, Admin, SystemOwner }
         public enum UserStatus { Active, Locked }
 
@@ -55,7 +53,7 @@ namespace BankApp
                     role = UserRole.Admin;
                     break;
                 default:
-                    Console.WriteLine("Invalid role. choose C or A.");
+                    UiStyle.Error("Invalid role. choose C or A.");
                     return;
             }
 
@@ -74,7 +72,7 @@ namespace BankApp
                 {"Role", role},
                 {"Status", UserStatus.Active},
                 {"FailedAttempts", 0},
-                {"UserObject", userObject} //Store the object (Customer or null)
+                {"UserObject", userObject} //Store the object
             };
 
             UsersList.Add(newUser);

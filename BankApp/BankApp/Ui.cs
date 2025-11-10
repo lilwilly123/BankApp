@@ -8,8 +8,6 @@ namespace BankApp
 {
     internal class Ui : Admin
     {
-       
-
         // runs the program, we can move this later just did it for testing
         public void Run()
         {
@@ -18,10 +16,12 @@ namespace BankApp
             while (running)
             {
                 Console.Clear();
+                UiStyle.Header("BANK SYSTEM");
+
                 Console.WriteLine("1. Register user");
                 Console.WriteLine("2. Login");
                 Console.WriteLine("3. Exit");
-                Console.Write("Choice: ");
+                UiStyle.Prompt("Choice: ");
 
                 string choice = Console.ReadLine();
 
@@ -46,8 +46,7 @@ namespace BankApp
 
                 if (running)
                 {
-                    Console.WriteLine("\nPress any key to continue...");
-                    Console.ReadKey();
+                    UiStyle.Pause();
                 }
             }
         }
@@ -78,7 +77,7 @@ namespace BankApp
         // ----------------------------------------------------------
         static void ShowCustomerMenu(Dictionary<string, object> user)
         {
-            new SystemOwner().ProcessPendingTransactions(GetAllCustomers());
+            //new SystemOwner().ProcessPendingTransactions(GetAllCustomers());
 
             Customer cust = (Customer)user["UserObject"];
             bool loggedIn = true;
@@ -86,7 +85,7 @@ namespace BankApp
             while (loggedIn)
             {
                 Console.Clear();
-                Console.WriteLine($"Welcome {user["Username"]} (Customer)");
+                UiStyle.Header($"Welcome {user["Username"]} (Customer)");
                 Console.WriteLine("1. Create Account");
                 Console.WriteLine("2. Deposit Funds");
                 Console.WriteLine("3. Withdraw Funds");
@@ -117,22 +116,17 @@ namespace BankApp
                         Console.Clear();
                         cust.TransactionHistory();
                         break;
+                    //---------
+                    //Loan
+                    //---------
                     case "6":
-                        Console.Write("Loan Id: ");
-                        string loanId = Console.ReadLine();
-                        Console.Write("Principal amount: ");
-                        decimal principalAmount = Convert.ToDecimal(Console.ReadLine());
-                        Console.Write("Interest rate(Perscent): ");
-                        float interestRate = float.Parse(Console.ReadLine());
+                        {
+                            Console.Clear();
+                            var owner = new SystemOwner();
+                            cust.ApplyLoan(owner);
+                            break;
+                        }
 
-                        DateTime StartDate = DateTime.Now;
-
-                        Console.Write("Due date(yyyy-mm-dd) ");
-                        DateTime DueDate = DateTime.Parse(Console.ReadLine());
-
-                        Loan newloan = new Loan(principalAmount, interestRate, StartDate, DueDate);
-                        Console.WriteLine($"Loan created! Outstanding amount: {newloan.OutstandingAmount}");
-                        break;
                     //-----------------
                     //Transfer balance
                     //-----------------
@@ -164,7 +158,7 @@ namespace BankApp
 
                                 if (targetUser == null || targetUser["Role"].ToString() != "Customer")
                                 {
-                                    Console.WriteLine("Customer not found.");
+                                    UiStyle.Error("Customer not found.");
                                     break;
                                 }
 
@@ -173,7 +167,7 @@ namespace BankApp
                                 break;
 
                             default:
-                                Console.WriteLine("Invalid choice.");
+                                UiStyle.Error("Invalid choice.");
                                 break;
                         }
                         break;
@@ -181,14 +175,13 @@ namespace BankApp
                         loggedIn = false;
                         break;
                     default:
-                        Console.WriteLine("Invalid choice.");
+                        UiStyle.Error("Invalid choice.");
                         break;
                 }
 
                 if (loggedIn)
                 {
-                    Console.WriteLine("\nPress any key to continue...");
-                    Console.ReadKey();
+                    UiStyle.Pause();
                 }
             }
         }
@@ -247,20 +240,15 @@ namespace BankApp
                         break;
 
                     default:
-                        Console.WriteLine("Invalid choice.");
+                        UiStyle.Error("Invalid choice.");
                         break;
                 }
 
                 if (loggedIn)
                 {
-                    Console.WriteLine("\nPress any key to continue...");
-                    Console.ReadKey();
+                    UiStyle.Pause();
                 }
             }
         }
-
-        // ----------------------------------------------------------
-        // Menu SystemOwner
-        // ----------------------------------------------------------
     }
 }
